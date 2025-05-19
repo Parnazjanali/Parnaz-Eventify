@@ -8,17 +8,25 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
+var logger *zap.Logger
 
 func InitDB() {
-	er := godotenv.Load()
-	if er != nil {
-		log.Fatalf("Error loading .env file")
+	var err error
+	logger, err = zap.NewProduction()
+	if err != nil {
+		panic("failed to initialize zap logger")
+	}
+	defer logger.Sync()
+
+	if err := godotenv.Load(); err != nil {
+		logger.Fatal("Error loading .env file", zap.Error(err))
 	}
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Tehran",
@@ -28,16 +36,16 @@ func InitDB() {
 		os.Getenv("DB_NAME"),
 		os.Getenv("DB_PORT"),
 	)
+	gormLog := gormLogger.Default.LogMode(gormLogger.Info)
 
-	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: gormLog,
 	})
 	if err != nil {
 		log.Fatalf("failed to connect Postgres database: %v", err)
 	}
 
-	err =DB.AutoMigrate(&model.User{})
+	err = DB.AutoMigrate(&model.User{})
 	if err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
@@ -50,7 +58,7 @@ func InitDB() {
 	sqlDB.SetMaxOpenConns(10)
 	sqlDB.SetMaxIdleConns(5)
 	sqlDB.SetConnMaxLifetime(time.Hour)
-	fmt.Println(" Postgres database connected successfully")
 
-	
+	logger.Info("Postgres database connected successfully")
+
 }

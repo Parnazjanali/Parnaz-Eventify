@@ -12,7 +12,7 @@ var SecretKey = []byte("secret")
 
 func GenerateToken(user model.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": user.Username, // استفاده از Username کاربر
+		"username": user.Username, 
 		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 	})
 	tokenString, err := token.SignedString(SecretKey)

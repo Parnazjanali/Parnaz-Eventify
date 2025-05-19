@@ -30,31 +30,3 @@ func AuthenticateUser(db *gorm.DB, username, password string) (*model.User, erro
 
 	return &user, nil
 }
-
-func RegisterUser(db *gorm.DB, req model.RegisterRequest) (*model.User, error) {
-	var existingUser model.User
-	if err := db.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
-		return nil, fmt.Errorf("User already exists")
-	} else if err != gorm.ErrRecordNotFound {
-		return nil, fmt.Errorf("Error checking for existing user: %v", err)
-
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, fmt.Errorf("Error hashing password: %v", err)
-	}
-
-	user := model.User{
-		Username:     req.Username,
-		PasswordHash: string(hashedPassword),
-		Email:        req.Email,
-		FullName:     req.FullName,
-	}
-
-	if err := db.Create(&user).Error; err != nil {
-		return nil, fmt.Errorf("Error creating user: %v", err)
-	}
-
-	return &user, nil
-}
